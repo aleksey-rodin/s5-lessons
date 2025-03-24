@@ -3,19 +3,19 @@ from logging import Logger
 
 from examples.stg import EtlSetting, StgEtlSettingsRepository
 from examples.stg.order_system_restaurants_dag.pg_saver import PgSaver
-from examples.stg.order_system_restaurants_dag.restaurant_reader import RestaurantReader
+from examples.stg.order_system_restaurants_dag.user_reader import UserReader
 from lib import PgConnect
 from lib.dict_util import json2str
 
 
-class RestaurantLoader:
+class UserLoader:
     _LOG_THRESHOLD = 2
     _SESSION_LIMIT = 10000
 
-    WF_KEY = "example_ordersystem_restaurants_origin_to_stg_workflow"
+    WF_KEY = "ordersystem_userss_origin_to_stg_workflow"
     LAST_LOADED_TS_KEY = "last_loaded_ts"
 
-    def __init__(self, collection_loader: RestaurantReader, pg_dest: PgConnect, pg_saver: PgSaver, logger: Logger) -> None:
+    def __init__(self, collection_loader: UserReader, pg_dest: PgConnect, pg_saver: PgSaver, logger: Logger) -> None:
         self.collection_loader = collection_loader
         self.pg_saver = pg_saver
         self.pg_dest = pg_dest
@@ -46,7 +46,7 @@ class RestaurantLoader:
             last_loaded_ts = datetime.fromisoformat(last_loaded_ts_str)
             self.log.info(f"starting to load from last checkpoint: {last_loaded_ts}")
 
-            load_queue = self.collection_loader.get_restaurants(last_loaded_ts, self._SESSION_LIMIT)
+            load_queue = self.collection_loader.get_users(last_loaded_ts, self._SESSION_LIMIT)
             self.log.info(f"Found {len(load_queue)} documents to sync from restaurants collection.")
             if not load_queue:
                 self.log.info("Quitting.")
@@ -54,7 +54,7 @@ class RestaurantLoader:
 
             i = 0
             for d in load_queue:
-                self.pg_saver.save_object(conn, str(d["_id"]), 'restaurants', d["update_ts"], d)
+                self.pg_saver.save_object(conn, str(d["_id"]), 'users', d["update_ts"], d)
 
                 i += 1
                 if i % self._LOG_THRESHOLD == 0:
