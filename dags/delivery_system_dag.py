@@ -1,9 +1,13 @@
 import logging
+from typing import Optional, List
 
 import pendulum
 from airflow.decorators import dag, task
 from lib import ConnectionBuilder, MongoConnect
-from stg.delivery_system.couriers import GetDeliverySystemData
+from stg.delivery_system.couriers import GetDeliverySystemData, LoadDataToStg
+from stg.delivery_system.models import CouriersSchema, DeliveriesSchema
+from stg.delivery_system.exceptions import (GetCouriersDataException, GetDeliveriesDataException,
+                                            LoadCouriersDataException, LoadDeliveriesDataException)
 
 log = logging.getLogger(__name__)
 
@@ -19,14 +23,17 @@ def stg_delivery_system_dag():
     # Создаем подключение к базе dwh.
     dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
     get_delivery_data = GetDeliverySystemData(dwh_pg_connect)
+    load_delivery_data = LoadDataToStg(dwh_pg_connect)
 
     @task()
     def load_couriers():
-        get_delivery_data.get_couriers(sort_field='name', limit=3)
+        couriers: List[CouriersSchema] = get_delivery_data.get_couriers()
+        load_delivery_data.insert_couriers_data(couriers)
 
     @task()
     def load_deliveries():
-        get_delivery_data.get_deliveries()
+        deliveries: List[DeliveriesSchema] = get_delivery_data.get_deliveries()
+        load_delivery_data.insert_deliveries_data(deliveries)
 
     load_couriers_task = load_couriers()
     load_deliveries_task = load_deliveries()
