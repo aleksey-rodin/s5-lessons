@@ -22,7 +22,7 @@ def stg_delivery_system_dag():
 
     @task()
     def load_couriers():
-        get_delivery_data.get_couriers()
+        get_delivery_data.get_couriers(sort_field='name', limit=3)
 
     @task()
     def load_deliveries():
